@@ -1,0 +1,47 @@
+{
+  "name": "com.vk.audio",
+  "version": "0.1.0",
+  "displayName": "VK Audio",
+  "description": "Data-driven, low-allocation audio system for Unity 6 VR-first projects. Pooled voices, weighted clip selection, music/ambience crossfades, snapshot-free ducking, persisted settings, and optional Event Service / Reflex / Addressables integration. Self-bootstrapping core with zero gameplay coupling.",
+  "unity": "6000.3",
+  "documentationUrl": "https://github.com/Varun-Khatri/AudioSystem",
+  "changelogUrl": "https://github.com/Varun-Khatri/AudioSystem/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/Varun-Khatri/AudioSystem/blob/main/LICENSE.md",
+  "keywords": [
+    "audio",
+    "vr",
+    "quest",
+    "pooling",
+    "mixer",
+    "ducking",
+    "litmotion"
+  ],
+  "author": {
+    "name": "Varun Khatri"
+  },
+  "dependencies": {
+    "com.annulusgames.lit-motion": "2.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Demo Scene (no DI)",
+      "description": "Minimal usage example using the static AudioSystem locator.",
+      "path": "Samples~/DemoScene"
+    },
+    {
+      "displayName": "Event Service Integration",
+      "description": "EventChannelAudioBinder + EventServiceAudioRouter (requires your VK.Events + Reflex).",
+      "path": "Samples~/EventServiceIntegration"
+    },
+    {
+      "displayName": "Reflex Integration",
+      "description": "AudioReflexInstaller binding IAudioService into a Reflex container.",
+      "path": "Samples~/ReflexIntegration"
+    },
+    {
+      "displayName": "SaveSystem Integration",
+      "description": "IAudioSettingsStore adapter template for your project's SaveSystem.",
+      "path": "Samples~/SaveSystemIntegration"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# This repo IS a UPM package (package root). Keep .meta files committed.
+# Ignore only OS / editor cruft.
+.DS_Store
+Thumbs.db
+*.tmp
+*~

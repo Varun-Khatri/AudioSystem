@@ -1,0 +1,6 @@
+# Treat audio/binary assets as binary; consider Git LFS for large clips/mixers.
+*.wav   binary
+*.ogg   binary
+*.mp3   binary
+*.mixer binary
+*.asset binary
