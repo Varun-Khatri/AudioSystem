@@ -1,7 +1,7 @@
 {
   "name": "com.vk.audio",
   "version": "0.1.0",
-  "displayName": "VK Audio",
+  "displayName": "Audio System",
   "description": "Data-driven, low-allocation audio system for Unity 6 VR-first projects. Pooled voices, weighted clip selection, music/ambience crossfades, snapshot-free ducking, persisted settings, and optional Event Service / Reflex / Addressables integration. Self-bootstrapping core with zero gameplay coupling.",
   "unity": "6000.3",
   "documentationUrl": "https://github.com/Varun-Khatri/AudioSystem",
