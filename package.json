@@ -37,11 +37,6 @@
       "displayName": "Reflex Integration",
       "description": "AudioReflexInstaller binding IAudioService into a Reflex container.",
       "path": "Samples~/ReflexIntegration"
-    },
-    {
-      "displayName": "SaveSystem Integration",
-      "description": "IAudioSettingsStore adapter template for your project's SaveSystem.",
-      "path": "Samples~/SaveSystemIntegration"
     }
   ]
 }
