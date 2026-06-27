@@ -1,6 +1,8 @@
 # This repo IS a UPM package (package root). Keep .meta files committed.
-# Ignore only OS / editor cruft.
+#
+# IMPORTANT: never add a "*~" pattern here. It matches the Samples~ folder and
+# would cause git to silently ignore all package samples.
+#
+# Ignore only OS cruft.
 .DS_Store
 Thumbs.db
-*.tmp
-*~

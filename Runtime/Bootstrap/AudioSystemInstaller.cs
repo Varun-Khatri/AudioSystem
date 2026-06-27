@@ -10,36 +10,45 @@ using VK.Audio.Settings;
 namespace VK.Audio.Bootstrap
 {
     /// <summary>
-    /// Self-bootstrapping entry point. Drop one onto a GameObject in your persistent/bootstrap scene.
-    /// It builds the pure-C# <see cref="AudioService"/>, wires the per-frame runner, and (optionally)
-    /// registers the service on the static <see cref="AudioSystem"/> locator.
+    /// Self-bootstrapping entry point. Two usage modes:
+    ///   1) NON-DI: drop on a GameObject in your boot/persistent scene, assign Config + Database in the
+    ///      inspector, leave Build On Awake ON. Call sounds via AudioSystem.Service.
+    ///   2) DI (Reflex): a ProjectScope installer creates the host object, calls <see cref="Configure"/>
+    ///      then <see cref="Build"/>, and binds the returned IAudioService (see AudioProjectInstaller).
     ///
-    /// DI users call <see cref="Build"/> from their own installer (see the Reflex sample) and bind the
-    /// returned instance. <see cref="Build"/> is idempotent: whoever calls first constructs the single
-    /// instance, everyone else gets the same one — so there is no race between Awake and DI resolution.
-    /// Runs very early (execution order -10000) so the service exists before consumers resolve it.
+    /// <see cref="Build"/> is idempotent — whoever calls first constructs the single instance, everyone
+    /// else gets the same one, so there is no race between Awake and DI resolution. Runs very early
+    /// (execution order -10000) so the service exists before consumers resolve it.
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(-10000)]
     public sealed class AudioSystemInstaller : MonoBehaviour
     {
-        [Header("Configuration")]
-        [SerializeField] private AudioSystemConfig _config;
+        [Header("Configuration")] [SerializeField]
+        private AudioSystemConfig _config;
+
         [SerializeField] private AudioDatabase _database;
 
         [Header("Bootstrap options")]
-        [Tooltip("Build automatically in Awake. Leave ON even for Reflex — Build() is idempotent.")]
-        [SerializeField] private bool _buildOnAwake = true;
+        [Tooltip("Build automatically in Awake. Turn OFF when a DI installer calls Configure()+Build().")]
+        [SerializeField]
+        private bool _buildOnAwake = true;
 
-        [Tooltip("Register the service on the static AudioSystem locator. Turn OFF if you want DI to be " +
-                 "the only way to access the service.")]
-        [SerializeField] private bool _registerStaticLocator = true;
+        [Tooltip("Register the service on the static AudioSystem locator. Keep ON if anything uses " +
+                 "AudioSystem.Service or a ProjectScope factory that reads it.")]
+        [SerializeField]
+        private bool _registerStaticLocator = true;
 
-        [Tooltip("Custom settings store. Leave null to use PlayerPrefs. Usually set from code/DI.")]
-        [SerializeReference] private IAudioSettingsStore _settingsStoreOverride;
+        [Tooltip("Persist this object (and its voices/beds) across single-mode scene loads. The object " +
+                 "must be a root GameObject. Required if music/ambience must survive a scene change.")]
+        [SerializeField]
+        private bool _dontDestroyOnLoad = false;
 
-        [Tooltip("Custom clip provider (e.g. Addressables). Leave null for direct references.")]
-        [SerializeReference] private IClipProvider _clipProviderOverride;
+        [Tooltip("Custom settings store. Leave null for PlayerPrefs. Usually set from code/DI.")] [SerializeReference]
+        private IAudioSettingsStore _settingsStoreOverride;
+
+        [Tooltip("Custom clip provider (e.g. Addressables). Leave null for direct references.")] [SerializeReference]
+        private IClipProvider _clipProviderOverride;
 
         public AudioService Service { get; private set; }
 
@@ -51,8 +60,36 @@ namespace VK.Audio.Bootstrap
         }
 
         /// <summary>
-        /// Constructs (once) and returns the service, wiring the runner and locator. Safe to call
-        /// multiple times and from anywhere — subsequent calls return the existing instance.
+        /// Inject configuration/overrides from code before <see cref="Build"/> (e.g. from a DI installer).
+        /// Only non-null / specified arguments override existing values. No effect once built.
+        /// </summary>
+        public void Configure(
+            AudioSystemConfig config = null,
+            AudioDatabase database = null,
+            IAudioSettingsStore store = null,
+            IClipProvider clipProvider = null,
+            bool? registerStaticLocator = null,
+            bool? dontDestroyOnLoad = null,
+            bool? buildOnAwake = null)
+        {
+            if (Service != null)
+            {
+                AudioLog.Warning("Configure() called after the service was built; ignored.");
+                return;
+            }
+
+            if (config != null) _config = config;
+            if (database != null) _database = database;
+            if (store != null) _settingsStoreOverride = store;
+            if (clipProvider != null) _clipProviderOverride = clipProvider;
+            if (registerStaticLocator.HasValue) _registerStaticLocator = registerStaticLocator.Value;
+            if (dontDestroyOnLoad.HasValue) _dontDestroyOnLoad = dontDestroyOnLoad.Value;
+            if (buildOnAwake.HasValue) _buildOnAwake = buildOnAwake.Value;
+        }
+
+        /// <summary>
+        /// Constructs (once) and returns the service, wiring the runner, persistence and locator.
+        /// Safe to call multiple times and from anywhere — later calls return the existing instance.
         /// </summary>
         public AudioService Build()
         {
@@ -68,7 +105,7 @@ namespace VK.Audio.Bootstrap
 
             var mixerController = new AudioMixerController(_config.Mixer, _config.ExposedVolumeParams, _config.Groups);
             var duck = new DuckController(mixerController, _config.DuckTargets,
-                                          _config.DuckAmountDb, _config.DuckAttack, _config.DuckRelease);
+                _config.DuckAmountDb, _config.DuckAttack, _config.DuckRelease);
 
             var store = _settingsStoreOverride ?? new PlayerPrefsAudioSettingsStore();
             var settings = new AudioSettingsService(mixerController, store);
@@ -80,6 +117,12 @@ namespace VK.Audio.Bootstrap
 
             _runner = GetComponent<AudioServiceRunner>() ?? gameObject.AddComponent<AudioServiceRunner>();
             _runner.Bind(Service);
+
+            if (_dontDestroyOnLoad)
+            {
+                if (transform.parent != null) transform.SetParent(null, true);
+                DontDestroyOnLoad(gameObject);
+            }
 
             if (_registerStaticLocator) AudioSystem.Register(Service);
 
