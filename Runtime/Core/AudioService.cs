@@ -64,12 +64,17 @@ namespace VK.Audio.Core
                 AudioLog.Warning($"No AudioEvent with id {eventId} in database.");
                 return AudioHandle.None;
             }
+
             return PlayInternal(evt, position, follow);
         }
 
         private AudioHandle PlayInternal(AudioEvent evt, Vector3 position, Transform follow)
         {
-            if (evt == null) { AudioLog.Warning("Play called with null AudioEvent."); return AudioHandle.None; }
+            if (evt == null)
+            {
+                AudioLog.Warning("Play called with null AudioEvent.");
+                return AudioHandle.None;
+            }
 
             // VO gating: respect the user's "voice over enabled" preference.
             if (evt.Category == AudioCategory.VO && _settings != null && !_settings.VoiceOverEnabled)
@@ -87,7 +92,10 @@ namespace VK.Audio.Core
             if (clip == null)
             {
                 // Direct provider always returns immediately; this path matters for Addressables.
-                _clipProvider.Load(reference, _ => { /* deferred play could be added here */ });
+                _clipProvider.Load(reference, _ =>
+                {
+                    /* deferred play could be added here */
+                });
                 if (AudioLog.VerboseEnabled) AudioLog.Verbose($"Clip for '{evt.name}' not resident; load requested.");
                 return AudioHandle.None;
             }
@@ -105,6 +113,9 @@ namespace VK.Audio.Core
 
         public bool IsAlive(AudioHandle handle) => _pool.TryResolve(handle, out _);
 
+        public float GetLength(AudioHandle handle) =>
+            _pool.TryResolve(handle, out var v) ? v.PlaybackDuration : 0f;
+
         public void Stop(AudioHandle handle)
         {
             if (_pool.TryResolve(handle, out var v)) v.Stop();
@@ -113,7 +124,12 @@ namespace VK.Audio.Core
         public void FadeOut(AudioHandle handle, float seconds)
         {
             if (!_pool.TryResolve(handle, out var v)) return;
-            if (seconds <= 0f) { v.Stop(); return; }
+            if (seconds <= 0f)
+            {
+                v.Stop();
+                return;
+            }
+
             // Fade handled via LitMotion on the source volume; voice released on completion.
             VoiceFader.FadeOutAndStop(v, seconds);
         }
@@ -145,16 +161,20 @@ namespace VK.Audio.Core
         public void StopAll(bool includeBeds = true)
         {
             _pool.StopAll(true);
-            if (includeBeds) { _music.Stop(0f); _ambience.Stop(0f); }
+            if (includeBeds)
+            {
+                _music.Stop(0f);
+                _ambience.Stop(0f);
+            }
         }
 
         public void StopCategory(AudioCategory category)
         {
             switch (category)
             {
-                case AudioCategory.Music:    _music.Stop(0f); break;
+                case AudioCategory.Music: _music.Stop(0f); break;
                 case AudioCategory.Ambience: _ambience.Stop(0f); break;
-                default:                     _pool.StopCategory(category); break;
+                default: _pool.StopCategory(category); break;
             }
         }
 
@@ -168,13 +188,15 @@ namespace VK.Audio.Core
                 var v = _pool.Get(i);
                 if (v == null || !v.InUse) continue;
 
-                if (v.Tick())        // returns true when a one-shot finished naturally
+                if (v.Tick()) // returns true when a one-shot finished naturally
                 {
                     v.Stop();
                     continue;
                 }
+
                 if (v.Category.IsDucker()) anyDucker = true;
             }
+
             _duck.Evaluate(anyDucker);
         }
 

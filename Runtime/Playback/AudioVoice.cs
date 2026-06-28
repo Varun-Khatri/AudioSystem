@@ -21,6 +21,10 @@ namespace VK.Audio.Playback
         public int Priority { get; private set; }
         public bool Looping { get; private set; }
 
+        /// <summary>Actual play duration of the current one-shot in seconds (clip length / pitch).
+        /// 0 for looping voices or when nothing is playing. Used by dialogue to pace VO lines.</summary>
+        public float PlaybackDuration { get; private set; }
+
         private Transform _follow;
         private double _dspEndTime;
         private bool _hasEndTime;
@@ -41,7 +45,7 @@ namespace VK.Audio.Playback
 
         /// <summary>Configure and start the voice. Returns the generation stamped for this play.</summary>
         public int Play(AudioEvent evt, AudioClip clip, AudioMixerGroup group,
-                        float volume, float pitch, Vector3 position, Transform follow)
+            float volume, float pitch, Vector3 position, Transform follow)
         {
             Event = evt;
             Category = evt.Category;
@@ -78,11 +82,13 @@ namespace VK.Audio.Playback
 
             if (!evt.Loop && clip != null)
             {
-                _dspEndTime = AudioSettings.dspTime + (clip.length / Mathf.Max(0.01f, pitch));
+                PlaybackDuration = clip.length / Mathf.Max(0.01f, pitch);
+                _dspEndTime = AudioSettings.dspTime + PlaybackDuration;
                 _hasEndTime = true;
             }
             else
             {
+                PlaybackDuration = 0f;
                 _hasEndTime = false;
             }
 
@@ -101,8 +107,18 @@ namespace VK.Audio.Playback
         }
 
         public void SetVolume(float v) => Source.volume = Mathf.Max(0f, v);
-        public void SetPosition(Vector3 p) { _follow = null; Transform.position = p; }
-        public void SetFollow(Transform t) { _follow = t; if (t != null) Transform.position = t.position; }
+
+        public void SetPosition(Vector3 p)
+        {
+            _follow = null;
+            Transform.position = p;
+        }
+
+        public void SetFollow(Transform t)
+        {
+            _follow = t;
+            if (t != null) Transform.position = t.position;
+        }
 
         public void Stop()
         {
@@ -116,11 +132,16 @@ namespace VK.Audio.Playback
         {
             InUse = false;
             Looping = false;
+            PlaybackDuration = 0f;
             Event = null;
             _follow = null;
             _hasEndTime = false;
             Source.outputAudioMixerGroup = null;
-            unchecked { Generation++; }   // invalidates outstanding handles to this voice
+            unchecked
+            {
+                Generation++;
+            } // invalidates outstanding handles to this voice
+
             if (Generation == 0) Generation = 1;
         }
     }

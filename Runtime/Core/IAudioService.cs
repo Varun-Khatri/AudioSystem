@@ -14,15 +14,22 @@ namespace VK.Audio.Core
         // ---- One-shots / SFX / VO ----
         /// <summary>Play a 2D event (or a 3D event at the origin). Returns a controllable handle.</summary>
         AudioHandle Play(AudioEvent evt);
+
         /// <summary>Play at a world position (3D events) — 2D events ignore the position.</summary>
         AudioHandle Play(AudioEvent evt, Vector3 position);
+
         /// <summary>Play following a moving transform (3D events track it every frame).</summary>
         AudioHandle PlayFollow(AudioEvent evt, Transform follow);
+
         /// <summary>Resolve an event by id (== Event Service channel id) from the database, then play.</summary>
         AudioHandle PlayById(int eventId, Vector3 position = default, Transform follow = null);
 
         // ---- Live handle control (no-op on stale/finished handles) ----
         bool IsAlive(AudioHandle handle);
+
+        /// <summary>Play duration in seconds of the clip on this handle (0 if stale/looping/none).</summary>
+        float GetLength(AudioHandle handle);
+
         void Stop(AudioHandle handle);
         void FadeOut(AudioHandle handle, float seconds);
         void SetVolume(AudioHandle handle, float linear01);
